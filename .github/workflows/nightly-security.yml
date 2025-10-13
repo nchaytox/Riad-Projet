@@ -1,0 +1,81 @@
+name: Nightly Security Sweep
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  nightly:
+    name: Nightly Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Composer audit
+        run: composer audit --locked
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install NPM dependencies
+        if: hashFiles('package-lock.json') != ''
+        run: npm ci
+
+      - name: NPM audit (prod)
+        if: hashFiles('package-lock.json') != ''
+        run: npm audit --omit=dev
+
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: "p/owasp-top-ten,p/php"
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: detect --source . --no-banner
+
+      - name: Cache Trivy database
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/trivy
+          key: nightly-trivy-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            nightly-trivy-${{ runner.os }}-
+
+      - name: Trivy FS scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: fs
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          hide-progress: true
+
+      - name: Trivy Config scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: config
+          scanners: config
+          severity: HIGH,CRITICAL
+          hide-progress: true

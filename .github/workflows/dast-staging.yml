@@ -1,0 +1,59 @@
+name: ZAP Baseline (Staging)
+
+on:
+  workflow_run:
+    workflows: ["Deploy Staging"]
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  zap:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    name: OWASP ZAP Baseline Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Validate target URL
+        run: |
+          if [ -z "${{ secrets.STAGING_BASE_URL }}" ]; then
+            echo "STAGING_BASE_URL secret is not set" >&2
+            exit 1
+          fi
+
+      - name: Run ZAP Baseline
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          target: ${{ secrets.STAGING_BASE_URL }}
+          fail_action: true
+          cmd_options: '-w medium -m 60 -T 90 -r zap-report.html -J zap-report.json'
+
+      - name: Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-baseline-${{ github.run_id }}
+          path: |
+            zap-report.html
+            zap-report.json
+          retention-days: 14
+
+      - name: Create issue on findings
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `ZAP Baseline findings - ${{ github.run_id }}`;
+            const body = `Automated ZAP baseline scan detected Medium or High alerts.\n\nRefer to the attached report artefact (run ID: ${{ github.run_id }}).`;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['security', 'dast']
+            });

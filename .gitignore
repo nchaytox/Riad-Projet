@@ -1,0 +1,48 @@
+# Environment configuration
+.env
+.env.*
+!.env.testing
+
+# Node and frontend dependencies
+/node_modules/
+/public/build/
+/public/hot
+
+# PHP dependencies
+/vendor/
+
+# Framework generated files
+/storage/*
+!/storage/.gitignore
+/bootstrap/cache/*
+!/bootstrap/cache/.gitignore
+
+# Logs & database dumps
+*.log
+storage/logs/*
+*.sql
+*.sqlite
+*.sqlite3
+
+# Compiled assets & caches
+/npm-debug.log*
+/yarn-error.log*
+/pnpm-debug.log*
+/.phpunit.result.cache
+/.phpunit.cache/
+/coverage/
+/build/
+/dist/
+
+# IDE & editor cruft
+.idea/
+.vscode/
+*.swp
+*.swo
+*.orig
+*.DS_Store
+/Thumbs.db
+
+# Misc
+/dumps/
+/tmp/

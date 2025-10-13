@@ -1,0 +1,42 @@
+{
+    "private": true,
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "lint": "eslint \"resources/js/**/*.{js,vue}\" --max-warnings=0",
+        "check": "npm run lint && npm run build"
+    },
+    "type": "module",
+    "dependencies": {
+        "@fortawesome/fontawesome-free": "^6.7.2",
+        "@popperjs/core": "^2.11.8",
+        "@types/lodash": "^4.17.12",
+        "axios": "^1.7.7",
+        "bootstrap": "^5.3.3",
+        "chart.js": "^4.4.7",
+        "datatables.net": "^2.1.8",
+        "datatables.net-bs5": "^2.1.8",
+        "datatables.net-dt": "^2.1.8",
+        "laravel-echo": "^1.16.0",
+        "lodash": "^4.17.21",
+        "jquery": "^3.7.1",
+        "pusher-js": "^8.4.0",
+        "popper.js": "^1.16.1",
+        "select2": "^4.1.0-rc.0",
+        "sweetalert2": "^11.14.5",
+        "toastr": "^2.1.4"
+    },
+    "devDependencies": {
+        "laravel-vite-plugin": "^1.1.0",
+        "postcss": "^8.4.49",
+        "resolve-url-loader": "^5.0.0",
+        "sass": "^1.80.6",
+        "sass-loader": "^16.0.2",
+        "vite": "^6.3.5",
+        "vite-plugin-compression": "^0.5.1",
+        "eslint": "^9.13.0",
+        "eslint-plugin-vue": "^9.28.0",
+        "globals": "^15.9.0",
+        "vue-eslint-parser": "^9.4.3"
+    }
+}

@@ -1,0 +1,14 @@
+# Normalize line endings
+* text=auto
+
+# Ensure shell scripts keep LF endings
+*.sh text eol=lf
+*.bash text eol=lf
+artisan text eol=lf
+
+# Keep images and binaries untouched
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary

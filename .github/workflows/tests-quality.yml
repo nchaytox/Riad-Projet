@@ -1,0 +1,83 @@
+name: Tests & Quality
+
+on:
+  push:
+    branches:
+      - 'feat/**'
+      - 'fix/**'
+      - 'chore/**'
+      - 'docs/**'
+      - 'refactor/**'
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: tests-quality-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Backend & Frontend Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install NPM dependencies
+        if: hashFiles('package-lock.json') != ''
+        run: npm ci
+
+      - name: Prepare environment
+        run: |
+          cp .env.testing .env
+          php artisan key:generate
+          mkdir -p build/reports
+
+      - name: Run PHPUnit
+        run: php artisan test --log-junit=build/reports/phpunit.xml
+
+      - name: Run Larastan (PHPStan)
+        run: |
+          set -o pipefail
+          composer analyse -- --error-format=raw | tee build/reports/phpstan.log
+
+      - name: Composer audit (High/Critical)
+        run: |
+          composer audit --locked --format=json > build/reports/composer-audit.json
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-and-quality-${{ github.run_id }}
+          path: build/reports
+          retention-days: 14

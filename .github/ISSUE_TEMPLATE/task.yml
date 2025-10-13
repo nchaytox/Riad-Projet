@@ -1,0 +1,35 @@
+name: "Task"
+description: "Tâche technique ou opérationnelle"
+title: "[TASK] : "
+labels:
+  - chore
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: Résumé
+      placeholder: "Mettre à jour la configuration Reverb en staging"
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Détails
+      description: "Décrivez la tâche à effectuer."
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Checklist
+      description: "Listez les étapes ou sous-tâches."
+      placeholder: |
+        - [ ] Étape 1
+        - [ ] Étape 2
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priorité
+      options:
+        - P0 – Urgent
+        - P1 – Haute
+        - P2 – Normale
+        - P3 – Basse

@@ -1,0 +1,50 @@
+name: "Feature request"
+description: "Proposer une nouvelle fonctionnalité ou amélioration"
+title: "[FEAT] : "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Partagez le contexte métier pour aider l'équipe à comprendre votre besoin.
+  - type: input
+    id: summary
+    attributes:
+      label: Résumé
+      placeholder: "Gestion des codes promo pour les réservations"
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexte / Problème
+      description: "Quelle est la situation actuelle et pourquoi cette fonctionnalité est-elle nécessaire ?"
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposition
+      description: "Décrivez votre suggestion, y compris les impacts UI/API si possible."
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critères d'acceptation
+      description: "Liste de critères permettant de valider que la feature est complète."
+      placeholder: |
+        - Je peux créer un code promo avec un montant fixe
+        - Le code est utilisable une seule fois par client
+    validations:
+      required: true
+  - type: checkboxes
+    id: docs
+    attributes:
+      label: Documentation
+      description: "Que faudra-t-il documenter ?"
+      options:
+        - label: Docs utilisateur
+        - label: Docs technique
+        - label: Pas de documentation nécessaire

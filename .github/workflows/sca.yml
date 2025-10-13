@@ -1,0 +1,74 @@
+name: Dependency & Config Scans
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: sca-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  trivy:
+    name: Trivy Security Scans
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    env:
+      TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Trivy database
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.TRIVY_CACHE_DIR }}
+          key: trivy-${{ runner.os }}-${{ hashFiles('**/package-lock.json', 'composer.lock') }}
+          restore-keys: |
+            trivy-${{ runner.os }}-
+
+      - name: Trivy FS scan (dependencies)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: fs
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          format: sarif
+          output: trivy-fs.sarif
+          hide-progress: true
+
+      - name: Upload Trivy FS SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+
+      - name: Trivy Config scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: config
+          scanners: config
+          severity: HIGH,CRITICAL
+          format: sarif
+          output: trivy-config.sarif
+          hide-progress: true
+
+      - name: Upload Trivy Config SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-config.sarif
+          category: trivy-config
+
+      - name: Upload Trivy reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-reports-${{ github.run_id }}
+          path: |
+            trivy-fs.sarif
+            trivy-config.sarif
+          retention-days: 14
