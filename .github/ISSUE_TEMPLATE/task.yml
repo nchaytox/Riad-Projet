@@ -1,6 +1,6 @@
 name: "Task"
-description: "Tâche technique ou opérationnelle"
-title: "[TASK] : "
+description: "Petite tâche technique ou opérationnelle"
+title: "[TASK] Résumé court"
 labels:
   - chore
 body:
@@ -12,18 +12,24 @@ body:
     validations:
       required: true
   - type: textarea
-    id: details
+    id: scope
     attributes:
-      label: Détails
-      description: "Décrivez la tâche à effectuer."
+      label: Détails / portée
+      description: "Ce qu’il faut faire, avec l’environnement ou le service concerné."
   - type: textarea
     id: checklist
     attributes:
       label: Checklist
-      description: "Listez les étapes ou sous-tâches."
+      description: "Sous-tâches ou points de contrôle."
       placeholder: |
         - [ ] Étape 1
         - [ ] Étape 2
+  - type: textarea
+    id: done
+    attributes:
+      label: Définition de done
+      description: "Comment saura-t-on que la tâche est terminée ?"
+      placeholder: "Ex: Reverb répond OK en staging et les logs sont propres."
   - type: dropdown
     id: priority
     attributes:

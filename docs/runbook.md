@@ -1,73 +1,98 @@
-# Operations Runbook
+# Incident Runbook
 
-This runbook helps on-call engineers handle incidents, perform routine maintenance, and recover from failures in Riad Projet.
+Reference playbook for on-call responders. Keep this nearby when the pager rings.
 
-## Incident Severity Levels
-- **SEV0 – Outage:** Booking, check-in, or payment flow unavailable for all users.
-- **SEV1 – Critical Degradation:** Major features partially unavailable, data corruption risk.
-- **SEV2 – Functional Regression:** Non-critical features broken (reports, notifications) with workarounds.
-- **SEV3 – Minor Issue:** Cosmetic defects, documentation gaps, isolated errors.
+## 1. Quick triage
+1. Acknowledge alert (within 15 min) and assign an incident commander.
+2. Identify impact: bookings blocked? admin only? data at risk?
+3. Update status channel every 30 min until resolved.
 
-Escalate severity one level higher if guest data or payment integrity is at risk.
+## 2. Toolbelt
+- Logs: `storage/logs/laravel.log`, server syslog, queue failure logs.
+- Health endpoints: `/livez`, `/readyz`, `/health`.
+- Metrics dashboard: Grafana board "Riad Overview".
+- DB access: MySQL client with read replica/backup credentials.
+- Queue commands: `php artisan queue:failed`, `php artisan queue:retry`.
 
-## Incident Response Checklist
-1. **Acknowledge** alerts within 15 minutes. Assign an incident commander.
-2. **Stabilise** the platform—disable problematic integrations, scale up resources, or place the system into maintenance mode: `php artisan down --secret="INCIDENT_TOKEN"`.
-3. **Communicate** status in the incident Slack channel and update status page every 30 minutes.
-4. **Diagnose** using logs (`storage/logs/laravel.log`), metrics (APM/Dashboard), and recent deployments.
-5. **Mitigate** by rolling back, hotfixing, or applying configuration changes.
-6. **Verify** recovery with smoke tests (login, new reservation, payment capture).
-7. **Document** root cause, remediation, and follow-up tasks within 24 hours.
+## 3. Playbooks
+### 3.1 Database outage
+- **Symptoms:** `/readyz` returns 503, bookings fail with SQL errors.
+- **Diagnose:** check MySQL service status, review recent migrations, inspect disk space.
+- **Actions:**
+  1. Enter maintenance mode if writes are failing: `php artisan down --secret="incident"`.
+  2. Restart database service or failover to replica.
+  3. Validate connectivity (`php artisan tinker` -> `DB::select('select 1')`).
+  4. Run smoke tests (login, booking create).
+  5. Exit maintenance mode: `php artisan up`.
+- **Postmortem:** capture root cause, restore point, follow-up tasks.
 
-## Backup & Restore
-- **Database Backups:** Automated nightly MySQL dumps to encrypted object storage. Retain last 30 days; test restores weekly.
-- **Storage Assets:** Replicate room photos and invoices to versioned S3 buckets. Run checksum validation monthly.
-- **Configuration:** Infrastructure-as-code and `.env` templates stored in a secure secrets manager, not git.
+### 3.2 Mass 500 errors
+- **Symptoms:** Error rate > 5%, logs filled with stack traces.
+- **Diagnose:** identify recent deploy or config change; inspect exception messages; check queue workers.
+- **Actions:**
+  1. Roll back to last stable release (see deployment guide).
+  2. Clear caches only if needed (`php artisan config:clear` etc.).
+  3. Re-run failing tests locally to reproduce.
+  4. If caused by bad data, craft hotfix migration or manual SQL patch.
+- **Communication:** inform stakeholders on status channel, provide ETA.
 
-**Restore Procedure**
-1. Provision a clean MySQL instance.
-2. Import the latest dump using `mysql -u root -p < backup.sql`.
-3. Rebuild search indexes or caches with `php artisan migrate --force` and `php artisan schedule:run`.
-4. Repoint application environment variables to the restored database and trigger a smoke test.
+### 3.3 Brute-force or credential stuffing
+- **Symptoms:** login failures spike, rate limit logs show floods, alerts from auth dashboard.
+- **Diagnose:** review `laravel.log` for IP ranges, check WAF/firewall analytics.
+- **Actions:**
+  1. Tighten rate limits temporarily (`RATE_LIMIT_AUTH_ATTEMPTS=3`), deploy config cache.
+  2. Block offending IPs at edge (fail2ban, Cloudflare, security group).
+  3. Force password reset if compromise suspected.
+  4. Monitor metrics until normal.
+- **Follow-up:** review security policy, add captcha or MFA requirement.
 
-## Deployment Rollback
-1. Identify the last known-good release tag (e.g., `release-2024-05-01`).
-2. Checkout that tag and deploy through the existing pipeline.
-3. Run `php artisan migrate:status`. If newer migrations were applied, execute the corresponding `down()` methods or manual scripts.
-4. Clear caches to avoid stale data: `php artisan config:clear`, `php artisan cache:clear`, `php artisan route:clear`.
-5. Notify stakeholders once rollback is complete and start a post-incident review.
+### 3.4 Secret leak exposure
+- **Symptoms:** Gitleaks or ZAP alert, or manual report.
+- **Actions:**
+  1. Identify affected secret (APP_KEY, DB password, Reverb key).
+  2. Rotate secret in vault/ENV immediately.
+  3. Redeploy application with new secret.
+  4. Invalidate sessions/tokens where applicable.
+  5. Document incident, notify security contact (`security@example.com`).
 
-## Routine Maintenance
-- **Weekly:** Apply OS patches, rotate logs, review failed jobs queue.
-- **Monthly:** Audit user roles, rotate secrets, run `composer update` and `npm update --latest` in a staging environment.
-- **Quarterly:** Conduct disaster recovery drills, review threat model, and validate monitoring coverage.
+### 3.5 Booking overlap bug
+- **Symptoms:** duplicated room allocation, guests double-booked.
+- **Actions:**
+  1. Pause new bookings (maintenance mode or feature flag).
+  2. Investigate offending bookings (`bookings` table) and determine overlap.
+  3. Fix data manually (reassign room) and recalc occupancy.
+  4. Add regression test covering scenario; ensure transaction/locking logic intact.
 
-## Contacts & Escalation
-- Primary on-call engineer: refer to the internal roster.
-- Security contact: [security@example.com](mailto:security@example.com)
-- Hosting provider support: refer to internal credentials vault.
+## 4. Diagnostics checklist
+- `php artisan env` (ensure not accidentally in debug).
+- `php artisan schedule:work --once` (verify scheduler).
+- `php artisan queue:work --once` (test queue).
+- `php artisan horizon:status` (if Horizon enabled).
+- `mysqlshow` / `SHOW PROCESSLIST` for long-running queries.
 
-## Security Playbooks
-### Secret Exposure
-1. Rotate the affected secret (DB, APP_KEY, API token) in the secret store.
-2. Redeploy the application with updated credentials.
-3. Invalidate active sessions/tokens where applicable.
-4. Audit logs to determine scope and document the incident.
+## 5. Rollback procedure (code)
+1. Identify last known good tag or commit.
+2. Redeploy (sync files) without running new migrations.
+3. Run `php artisan migrate:status` to ensure DB matches expected version.
+4. Clear caches: `php artisan config:cache`, `php artisan route:cache`.
+5. Verify via smoke tests.
 
-### Brute-force Spike
-1. Increase rate-limit thresholds (e.g., tighten from 5/min to 3/min) and enable CAPTCHA on login/register.
-2. Block offending IPs/subnets via WAF or edge firewall.
-3. Monitor authentication metrics until attempts normalise.
-4. Communicate mitigation steps in the incident channel and update playbook if improvements are needed.
+## 6. DB restore drill
+1. Retrieve latest encrypted dump from backup storage.
+2. Restore into staging DB (`mysql -u <user> -p <db> < backup.sql`).
+3. Point staging `.env` to restored DB.
+4. Run `php artisan migrate --force` to apply pending migrations.
+5. Execute regression smoke tests.
+6. Document duration; target < 30 minutes.
 
-### Critical Dependency Vulnerability
-1. Bump the affected package to a patched release (or apply vendor fix).
-2. Run regression tests (`composer qa`, `npm run check`) locally or in CI.
-3. Perform an emergency deployment following the hotfix procedure.
-4. Record the timeline and notify stakeholders.
+## 7. Communication templates
+- **Initial alert:** "Investigating SEV1 booking outage. Impact: all bookings failing. Next update in 30 min."
+- **Stabilised:** "Bookings restored. Monitoring for 15 min before closing incident."
+- **Postmortem link:** share within 24h including cause, fix, prevention.
 
-### Data Incident
-1. Freeze writes (switch to maintenance mode or read-only mode).
-2. Capture relevant logs and database snapshots for forensics.
-3. Notify leadership and legal/compliance teams as required.
-4. Execute remediation plan, restore integrity, and publish a postmortem.
+## 8. Contact list
+- Incident commander rotation: see internal roster (Google Sheet).
+- Security contact: `security@example.com`.
+- Hosting provider: see secrets manager vault entry `infra/hosting`.
+
+Keep this runbook updated after every incident; add new playbooks as we learn.

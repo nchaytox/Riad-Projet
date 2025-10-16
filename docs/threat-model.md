@@ -1,36 +1,46 @@
-# Threat Model
+# Threat Model (OWASP lens)
 
-This document summarises the main security risks for Riad Projet and how we mitigate them. The analysis aligns with the [OWASP Top 10](https://owasp.org/www-project-top-ten/) and focuses on assets that impact guest privacy, payment integrity, and business operations.
+Scope: current Laravel monolith (web UI + JSON endpoints) hosted on a LAMP stack without Docker. Threats are mapped to OWASP Top 10 and include compensating controls that already exist or are planned.
 
-## Key Assets
-- Guest PII (name, email, phone, ID documents)
-- Reservation and billing data
-- Payment intents and tokens
-- Staff accounts and role assignments
-- Operational logs and audit trails
+## 1. Assets
+- Guest and staff accounts (authentication secrets, recovery tokens).
+- Reservation data (dates, pricing, special requests).
+- Payment intents and invoices (even if processed externally).
+- Administrative configuration (room availability, pricing rules).
+- Logs and audit trails (contain operational evidence).
 
-## Threats & Mitigations
-| OWASP Risk | Threat Description | Mitigation Controls | Detection & Response |
+## 2. Threats and controls
+| Category | Example threat | Primary controls | Detection & response |
 | --- | --- | --- | --- |
-| A01:2021 Broken Access Control | Staff role escalation or cross-tenant data access | Enforce policies via Laravel authorization gates/policies, restrict admin routes, review activity logs with Spatie Activitylog | Alerts on failed authorization, weekly audit of role changes |
-| A02:2021 Cryptographic Failures | Leakage of secrets, MITM on non-HTTPS | Serve over HTTPS, store secrets only in `.env`, rotate credentials, use TLS for Reverb/broadcasting | Secret scanning in CI, dependency checks for crypto libraries |
-| A03:2021 Injection | SQL or command injection through reservation forms | Use Eloquent/Query Builder bound parameters, validate inputs with Form Requests, disable debug tools in production | Runtime logs, WAF rules for suspicious payloads |
-| A04:2021 Insecure Design | Bypassing reservation workflow to overbook rooms | Implement server-side state transitions and invariants, lock inventory transactions, add business rules tests | Monitoring for double bookings, reconciliation reports |
-| A07:2021 Identification & Authentication Failures | Credential stuffing against staff logins | Use Laravel Fortify features (throttling, password length), support 2FA, enforce strong passwords, monitor failed logins | Rate limiting metrics, alert on brute force signatures |
-| A08:2021 Software & Data Integrity Failures | Compromise via outdated dependencies | Automate `composer audit` / `npm audit`, enable Dependabot, require signatures for production deployments | CI pipeline fails on high severity advisories, monthly review |
-| A09:2021 Security Logging & Monitoring Failures | Breach going unnoticed | Centralise logs (Stack driver/ELK), capture reservation state changes, alert on anomalies, retain logs for 180 days | On-call rotation receives alerts, runbook defines incident response |
+| **Broken Access Control** (A01) | IDOR exposing other guests' bookings; privilege escalation to admin. | Laravel policies/gates on every controller, route middleware per role, FormRequests enforce ownership. Activitylog tracks admin actions. | 403 metrics in observability, weekly audit of role grants, CI run of Laravel policy tests. |
+| **Cryptographic Failures** (A02) | Secrets leaked in repo; insecure cookies in prod. | Secrets only in `.env`; CI runs Gitleaks; production config enforces HTTPS, `APP_KEY` rotation process, secure/same-site cookies. | CI secret scans fail PR; runtime alerts when `APP_DEBUG=true` in prod. |
+| **Injection** (A03) | SQL injection through booking search filters. | Eloquent/Query Builder use bound parameters; validation sanitises user input; no dynamic SQL. | Error logs, 5xx spikes, WAF rules. |
+| **Insecure Design** (A04) | Overbooking via race condition; bypassing cancellation fee. | Booking service uses transactions and locks; business invariants covered by tests; state machine prevents illegal transitions. | Automated feature tests; metrics on double-booking attempts. |
+| **Security Misconfiguration** (A05) | Public storage exposing invoices; verbose errors in prod. | Storage symlink controlled; `.env` not committed; deployment checklist sets `APP_DEBUG=false`; CSP, HSTS, X-Frame, X-Content-Type headers configured. | Health checks validate debug OFF; observability alerts on missing headers. |
+| **Vulnerable Components** (A06) | Unpatched Composer/NPM packages. | CI runs `composer audit`, `npm audit`, Trivy FS; Dependabot alerts. | CI fails on HIGH/CRITICAL; governance issue opened. |
+| **Identification & Auth Failures** (A07) | Brute force on login; session fixation. | Rate limiting (`RATE_LIMIT_AUTH_ATTEMPTS`); Laravel session regeneration; support for 2FA; password length enforcement. | Auth metrics (failed login count) and brute force playbook. |
+| **Software Integrity Failures** (A08) | Malicious dependency/injected builds. | Lock files committed; CI verifies signatures when available; SBOM published; releases built from tagged commits. | CI pipeline fails on checksum mismatch; SBOM diff review. |
+| **Security Logging & Monitoring Failures** (A09) | Silent account compromise. | Structured JSON logs via stack channel; activity log for bookings; alerts for anomaly spikes (to be wired into Grafana). | Runbook defines response; nightly review of alerts. |
+| **Server-Side Request Forgery** (A10) | Abuse of outbound HTTP clients. | Outbound whitelists in config; HTTP client timeouts; no user-controlled URLs in MVP. | Logging of outbound requests; alerts on unexpected domains. |
+| **CSRF** (A05 extended) | Forged POST from attacker. | Laravel CSRF middleware; verify tokens on all state-changing routes; `SameSite=lax` cookies. | 419 responses monitored; QA tests. |
+| **XSS** (A03 extended) | Stored XSS via booking notes. | Blade auto-escaping; FormRequests strip HTML unless explicitly allowed; CSP blocking inline scripts. | Content Security Policy violation reports (future) and smoke tests. |
 
-## Assumptions
-- Production runs behind a WAF/Reverse proxy that terminates TLS.
-- Database access is restricted to app services via network firewalls.
-- Third-party payment provider handles PCI scope; we never store raw card data.
+## 3. Residual risks
+- Social engineering of staff (phishing) can still grant access; mitigate with training and least privilege.
+- Denial of Service: current stack can be overwhelmed; rate limiting and WAF rules reduce but cannot eliminate.
+- Real-time channel (Reverb/Pusher) depends on API credentials; compromise could leak live updates.
+- Manual deployments risk misconfiguration; see deployment checklist to reduce human error.
 
-## Residual Risks
-- Social engineering against staff cannot be fully mitigated—train staff and enforce least privilege.
-- Denial of service against Reverb could degrade real-time UX; fall back to polling when websocket connections fail.
-- Misconfigured S3/storage permissions can expose assets; run periodic bucket audits.
+## 4. Treatment plan
+| Risk | Action | Owner | Target date |
+| --- | --- | --- | --- |
+| DoS on authentication endpoints | Integrate Cloudflare/Fail2ban rules, consider captcha after N failures. | Infra lead | Before public launch |
+| Websocket credential leakage | Rotate Reverb keys quarterly; monitor access logs. | Dev lead | Recurring (quarterly) |
+| Lack of automated secret rotation | Adopt external secret manager (HashiCorp Vault or AWS Secrets Manager). | Platform team | Phase 2 |
+| Missing CSP reporting endpoint | Configure `report-to` header and monitor CSP violations. | Frontend lead | Phase 2 |
 
-## Next Steps
-- Integrate automated penetration testing in CI (e.g., OWASP ZAP) before major releases.
-- Document data retention periods and anonymisation procedures.
-- Perform annual tabletop exercises to rehearse incident response.
+## 5. References
+- [Security policy](../SECURITY.md)
+- [CI security pipeline](ci-security.md)
+- [Runbook](runbook.md)
+- [Security hardening guide](security-hardening.md)

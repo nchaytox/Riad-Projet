@@ -1,16 +1,22 @@
-# Résumé
-- [ ] Ce PR est prêt pour revue
-
-## Changements majeurs
-- …
+# Résumé des changements
+- [ ] PR prête pour revue
+- Contexte & motivation :
+  - …
+  - …
 
 ## Comment tester
 1. …
 2. …
+3. …
+
+## Impact sécurité
+- Entrées côté serveur validées/échappées ? …
+- Rôles ou permissions affectés ? …
+- Données sensibles, secrets ou événements de sécurité concernés ? …
 
 ## Checklist
 - [ ] Tests automatisés OK (`php artisan test`)
-- [ ] Lint OK (`./vendor/bin/pint`, `npm run build`)
-- [ ] Pas de breaking change non documentée
-- [ ] Documentation mise à jour si nécessaire
-- [ ] Vulnerability scans (`composer audit`, `npm audit`) vérifiés
+- [ ] Lint / build front OK (`./vendor/bin/pint`, `npm run build`)
+- [ ] Migrations exécutées et vérifiées (`php artisan migrate`)
+- [ ] Seeders / fixtures mis à jour si nécessaire
+- [ ] Documentation ou notes de déploiement mises à jour

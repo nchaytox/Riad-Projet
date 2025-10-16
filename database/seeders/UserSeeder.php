@@ -16,13 +16,32 @@ class UserSeeder extends Seeder
      */
     public function run()
     {
-        // User::factory(5)->create();
-        User::create([
-            'name' => 'Nchaytox',
-            'email' => 'nchaytox@gmail.com',
-            'password' => Hash::make('nchaytox'),
-            'role' => 'Super',
-            'random_key' => Str::random(60),
-        ]);
+        collect([
+            [
+                'name' => 'Demo Super Admin',
+                'email' => 'admin.demo@example.com',
+                'role' => 'Super',
+            ],
+            [
+                'name' => 'Demo Staff',
+                'email' => 'staff.demo@example.com',
+                'role' => 'Admin',
+            ],
+            [
+                'name' => 'Demo Guest',
+                'email' => 'guest.demo@example.com',
+                'role' => 'Customer',
+            ],
+        ])->each(function (array $user) {
+            User::updateOrCreate(
+                ['email' => $user['email']],
+                [
+                    'name' => $user['name'],
+                    'role' => $user['role'],
+                    'password' => Hash::make('password'),
+                    'random_key' => Str::random(60),
+                ]
+            );
+        });
     }
 }

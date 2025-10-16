@@ -7,22 +7,14 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 
 class RoomStatusFactory extends Factory
 {
-    /**
-     * The name of the factory's corresponding model.
-     *
-     * @var string
-     */
     protected $model = RoomStatus::class;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array
-     */
-    public function definition()
+    public function definition(): array
     {
         return [
-            //
+            'name' => $this->faker->unique()->word(),
+            'code' => strtoupper($this->faker->unique()->lexify('???')),
+            'information' => $this->faker->sentence(),
         ];
     }
 }

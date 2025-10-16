@@ -1,13 +1,13 @@
 name: "Feature request"
-description: "Proposer une nouvelle fonctionnalité ou amélioration"
-title: "[FEAT] : "
+description: "Proposer une nouvelle fonctionnalité ou une amélioration majeure"
+title: "[FEAT] Résumé du besoin"
 labels:
   - enhancement
 body:
   - type: markdown
     attributes:
       value: |
-        Partagez le contexte métier pour aider l'équipe à comprendre votre besoin.
+        Expliquez le besoin métier avant de proposer une solution technique. Des exemples réels aident à prioriser.
   - type: input
     id: summary
     attributes:
@@ -16,35 +16,31 @@ body:
     validations:
       required: true
   - type: textarea
-    id: context
+    id: business_need
     attributes:
-      label: Contexte / Problème
-      description: "Quelle est la situation actuelle et pourquoi cette fonctionnalité est-elle nécessaire ?"
-    validations:
-      required: true
-  - type: textarea
-    id: proposal
-    attributes:
-      label: Proposition
-      description: "Décrivez votre suggestion, y compris les impacts UI/API si possible."
+      label: Besoin métier
+      description: "Quel problème utilisateur ou opérationnel essayons-nous de résoudre ?"
+      placeholder: "L'équipe marketing doit offrir des remises ciblées sans manipulation manuelle du calendrier."
     validations:
       required: true
   - type: textarea
     id: acceptance
     attributes:
-      label: Critères d'acceptation
-      description: "Liste de critères permettant de valider que la feature est complète."
+      label: Critères d’acceptation
+      description: "Liste de scénarios qui doivent réussir pour considérer la fonctionnalité terminée."
       placeholder: |
-        - Je peux créer un code promo avec un montant fixe
-        - Le code est utilisable une seule fois par client
+        - Je peux créer un code promo avec un montant fixe ou un pourcentage.
+        - Un client ne peut l'utiliser qu'une fois.
+        - L'historique des codes utilisés apparaît dans la fiche réservation.
     validations:
       required: true
-  - type: checkboxes
-    id: docs
+  - type: textarea
+    id: proposal
     attributes:
-      label: Documentation
-      description: "Que faudra-t-il documenter ?"
-      options:
-        - label: Docs utilisateur
-        - label: Docs technique
-        - label: Pas de documentation nécessaire
+      label: Pistes / contraintes
+      description: "Idées techniques, contraintes connues ou impacts UI/API (optionnel)."
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes complémentaires
+      description: "Liens, métriques, estimation, dépendances, etc. (optionnel)."

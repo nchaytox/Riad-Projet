@@ -1,31 +1,24 @@
-# Security Policy
+# Politique de sécurité
 
-## Supported Versions
-Security updates are guaranteed for:
-- `main` – latest production release
-- `develop` – upcoming release currently under active development
+## Signaler une vulnérabilité
+- Contactez-nous à [security@example.com](mailto:security@example.com) avec un résumé, un impact estimé et étapes de reproduction (logs ou PoC si possible).
+- Accusé de réception sous **48 h** ouvrées, premier retour technique sous **5 jours ouvrés**.
+- Nous coordonnons la divulgation responsable : merci d’attendre la mise à disposition d’un correctif avant toute publication.
 
-Older branches are considered end-of-life and will not receive security fixes.
+## Surfaces d’attaque à surveiller
+- **Authentification & session** : formulaires de connexion, réinitialisation, 2FA, cookies de session.
+- **Réservations** : création/modification d’une réservation, gestion de stock de chambres, calendrier.
+- **Téléversements** : gestion des médias (photos de chambres, avatars) et conversion d’images.
+- **Espace d’administration** : paramétrage global, création de comptes, accès aux données sensibles.
 
-## Reporting a Vulnerability
-If you discover a vulnerability, please contact the maintainers privately at [security@example.com](mailto:security@example.com) with:
-- A description of the issue and potential impact
-- Steps to reproduce (proof of concept) or a failing test if available
-- Any logs, stack traces, or configuration details that help us reproduce the issue
+## Bonnes pratiques attendues
+- Aucun secret dans le dépôt git : utilisez `.env`, GitHub secrets ou un gestionnaire de secrets.
+- Rotation immédiate des clés compromettues et suppression des identifiants inutilisés.
+- Gardez les dépendances et l’OS du serveur à jour (correctifs de sécurité appliqués rapidement).
+- Activez les audits (`composer audit`, `npm audit`) et corrigez les vulnérabilités critiques avant mise en production.
 
-We aim to acknowledge reports within **48 hours** and provide an initial assessment within **5 business days**. Coordinate disclosure timelines with us; we prefer to release fixes before details are published.
+## Versions supportées
+- Branche `main` : reçoit les correctifs de sécurité.
+- Toute autre branche (historique, forks) n’est pas couverte et doit être mise à jour avant déploiement.
 
-## Handling Secrets
-- Never commit `.env` files or other secret material to source control.
-- Rotate credentials immediately if you suspect a secret has leaked.
-- Use `.env.example` for non-sensitive defaults and clearly document required variables.
-- When sharing debugging details, redact tokens, passwords, and customer data.
-
-## Secure Development Checklist
-- Keep dependencies updated (`composer update` and `npm update`) and review changelogs for security patches.
-- Run automated security tooling (Dependabot, Composer audit, NPM audit) and address high severity findings promptly.
-- Validate and sanitise all user-provided input and never trust client-side enforcement alone.
-- Enforce HTTPS in production and configure session/cookie security flags.
-- Log security events (failed logins, suspicious reservations) and review them regularly.
-
-Thank you for helping us keep Riad Projet safe for our users.
+Merci de contribuer à la sécurité de Riad Projet.

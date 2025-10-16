@@ -1,18 +1,18 @@
 name: "Bug report"
-description: "Signaler un dysfonctionnement dans Laravel Hotel"
-title: "[BUG] : "
+description: "Signaler un dysfonctionnement reproductible"
+title: "[BUG] Résumé court"
 labels:
   - bug
 body:
   - type: markdown
     attributes:
       value: |
-        Merci de détailler le problème pour que l'équipe puisse le reproduire rapidement.
+        Fournissez assez de détails pour que l'équipe puisse reproduire et diagnostiquer rapidement.
   - type: input
     id: summary
     attributes:
       label: Résumé
-      description: "Une phrase pour décrire le bug"
+      description: "Une phrase qui décrit le bug."
       placeholder: "Impossible de confirmer une réservation après paiement"
     validations:
       required: true
@@ -20,11 +20,12 @@ body:
     id: steps
     attributes:
       label: Étapes de reproduction
-      description: "Liste détaillée des actions à suivre pour reproduire le bug"
+      description: "Listez chaque étape, avec l’URL concernée et les données utilisées le cas échéant."
       placeholder: |
         1. Aller sur /reservations
-        2. Cliquer sur Nouvelle réservation
-        3. ...
+        2. Cliquer sur « Nouvelle réservation »
+        3. Valider avec le client X
+        4. …
     validations:
       required: true
   - type: textarea
@@ -45,13 +46,13 @@ body:
     id: logs
     attributes:
       label: Logs / captures d'écran
-      description: "Collez les erreurs pertinentes ou joignez des captures d'écran."
+      description: "Ajoutez les erreurs pertinentes (stack trace, console, réseau) ou des captures."
       render: shell
   - type: input
-    id: version
+    id: env
     attributes:
       label: Version / environnement
-      description: "Branch, tag ou commit, ainsi que l'environnement (dev, staging, prod)."
+      description: "Branch, tag ou commit + environnement (dev, staging, prod)."
       placeholder: "develop @ 3f4c1a8 – staging"
     validations:
       required: true
@@ -61,5 +62,5 @@ body:
       label: Est-ce une régression ?
       options:
         - "Je ne sais pas"
-        - "Oui, récent"
-        - "Non, bug ancien"
+        - "Oui"
+        - "Non"
