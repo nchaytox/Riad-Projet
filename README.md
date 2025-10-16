@@ -11,7 +11,7 @@ Riad Projet is a booking and property management platform built with Laravel. It
 ## Quick Start
 1. **Clone & bootstrap**
    ```bash
-   git clone https://github.com/<your-org>/Riad-Projet.git
+   git clone https://github.com/nchaytox/Riad-Projet.git
    cd Riad-Projet
    cp .env.example .env
    ```
